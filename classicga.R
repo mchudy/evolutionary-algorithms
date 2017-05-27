@@ -18,14 +18,7 @@ classicga <- function(fitness,
   for(j in 1:dimension) { 
     population[,j] <- runif(populationSize, min[j], max[j])
   }
-  
   if(verbose) print(population)
-  
-  for(i in seq_len(populationSize)) {
-    if(is.na(fitnessVec[i])) {
-      fitnessVec[i] <- fitness(population[i,])
-    }
-  }
   
   for (iter in seq_len(maxIterations)) {
     
