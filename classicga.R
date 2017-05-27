@@ -41,7 +41,7 @@ classicga <- function(fitness,
     if(crossoverProb > 0) {
       nmating = floor(populationSize / 2)
       # shouldn't it be populationSize instead of 2*nmating when taking sample?
-      mating <- matrix(sample(1:(2 * nmating), size = (2 * nmating)), ncol = 2)
+      mating <- matrix(sample(1:populationSize, size = (2 * nmating)), ncol = 2)
       for(i in seq_len(nmating)) { 
         if(crossoverProb > runif(1)) { 
           parents <- mating[i,]
@@ -52,10 +52,19 @@ classicga <- function(fitness,
       }
     }
     if(verbose) print(population)
-    
+
     # mutation
+    if(mutationProb > 0) {
+      for(i in seq_len(populationSize)) {
+        population[i,] <- gaussianMutation(population[i,], mutationProb, min, max)
+        fitnessVec[i] <- NA
+      }
+    }
+    if(verbose) print(population)
     
     # elitism
+    ordered <- order(fitnessVec, na.last = TRUE)
+    
   }
 }
 
@@ -94,8 +103,16 @@ singlePointCrossover <- function(fitnessVec, population, parents) {
   return(result)
 }
 
-mutation <- function() {
-  
+gaussianMutation <- function(solution, prob, min, max) {
+  n <- length(solution)
+  mutant <- solution
+  # select variables for mutation
+  idx <- which(runif(n) < prob)
+  mutate <- rnorm(length(idx), mean = 0, sd = 0.04)
+  mutant[idx] <- solution[idx] + mutate
+  # correct bounds
+  mutant <- pmax(pmin(mutant, max), min)
+  return(mutant)
 }
 
 
