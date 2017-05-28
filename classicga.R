@@ -4,10 +4,33 @@ classicga <- function(fitness,
                       populationSize = 50,
                       crossoverProb = 0.2,
                       mutationProb = 0.1,
-                      maxIterations = 1000,
-                      elitismPercentage = 0.05,
+                      iterations = 100,
+                      elitismPercentage = 0.1,
                       verbose = FALSE
 ) {
+  # validate arguments
+  if(missing(fitness) | !is.function(fitness)) {
+    stop("A fitness function is required")
+  }
+  if(missing(min) | missing(max)) {
+    stop("The min and max vectors are required")
+  }
+  if(iterations < 1) {
+    stop("The number of iterations must be greater than 0")
+  }
+  if(crossoverProb < 0 | crossoverProb > 1) {
+    stop("The provided crossover probability is not valid")
+  }
+  if(mutationProb < 0 | mutationProb > 1) {
+    stop("The provided mutation probability is not valid")
+  }
+  if(elitismPercentage < 0 | elitismPercentage > 1) {
+    stop("The provided elitism percentage is not valid")
+  }
+  if(length(min) != length(max)) {
+    stop("The min and max vectors must have the same length")
+  }
+  
   dimension <- length(min)
   fitnessVec <- rep(NA, populationSize)
   eps = sqrt(.Machine$double.eps)
@@ -20,7 +43,7 @@ classicga <- function(fitness,
   }
   if(verbose) print(population)
   
-  for (iter in seq_len(maxIterations)) {
+  for (iter in seq_len(iterations)) {
     
     # evaluate fitness
     for(i in seq_len(populationSize)) {
@@ -29,13 +52,12 @@ classicga <- function(fitness,
       }
     }
     
-    # check stop condition
-    # TODO
+    if(iter == iterations) break
     
     ord <- order(fitnessVec, decreasing = TRUE)
     populationSorted <- population[ord,,drop=FALSE]
     fitnessSorted <- fitnessVec[ord]
-    
+
     # selection
     selected <- rouletteSelection(fitnessVec, population, populationSize)
     population <- selected$population
@@ -44,7 +66,7 @@ classicga <- function(fitness,
     
     # crossover
     if(crossoverProb > 0) {
-      nmating = floor(populationSize / 2)
+      nmating <- floor(populationSize / 2)
       mating <- matrix(sample(1:populationSize, size = (2 * nmating)), ncol = 2)
       for(i in seq_len(nmating)) { 
         if(crossoverProb > runif(1)) { 
@@ -60,10 +82,11 @@ classicga <- function(fitness,
     # mutation
     if(mutationProb > 0) {
       for(i in seq_len(populationSize)) {
+        mutated <- gaussianMutation(population[i,], mutationProb, min, max)
+        if(!identical(mutated, population[i])) {
+          fitnessVec[i] <- NA
+        }
         population[i,] <- gaussianMutation(population[i,], mutationProb, min, max)
-        # this is wrong! GA incorrectly interprets probability mutation, therefore
-        # this needs to be handled differently
-        fitnessVec[i] <- NA
       }
     }
     if(verbose) print(population)
@@ -75,12 +98,9 @@ classicga <- function(fitness,
     fitnessVec[ord[1:elitism]] <- fitnessSorted[u[1:elitism]]
   }
   
-  print(fitnessVec)
   fitnessValue <- max(fitnessVec, na.rm = TRUE)
-  print(fitnessValue)
   bestResult <- which(fitnessVec == fitnessValue)
   solution <- population[bestResult,,drop=FALSE]
-  print(population)
   return(solution)
 }
 
@@ -130,25 +150,3 @@ gaussianMutation <- function(solution, prob, min, max) {
   mutant <- pmax(pmin(mutant, max), min)
   return(mutant)
 }
-
-
-
-# Example 1
-f <- function(x)  (x^2+x)*cos(x) # -10 < x < 10
-curve(f, -10, 10)
-GA <- classicga(fitness =  f, min = -10, max = 10, verbose = FALSE)
-print(GA)
-
-# Example 2 (difficult function)
-Rastrigin <- function(x1, x2)
-{
-  20 + x1^2 + x2^2 - 10*(cos(2*pi*x1) + cos(2*pi*x2))
-}
-GA <- classicga(fitness =  function(x) -Rastrigin(x[1], x[2]),
-                min = c(-5.12, -5.12), max = c(5.12, 5.12), verbose = FALSE)
-print(GA)
-
-GA <- GA::ga(type = "real-valued", fitness =  function(x) -Rastrigin(x[1], x[2]),
-         min = c(-5.12, -5.12), max = c(5.12, 5.12), 
-         popSize = 50, maxiter = 1000, crossover = ga_spCrossover)
-print(GA)
