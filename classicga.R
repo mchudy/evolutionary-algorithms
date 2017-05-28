@@ -101,7 +101,7 @@ classicga <- function(fitness,
   fitnessValue <- max(fitnessVec, na.rm = TRUE)
   bestResult <- which(fitnessVec == fitnessValue)
   solution <- population[bestResult,,drop=FALSE]
-  return(solution)
+  return(list(solution=solution,population=population,fitness=fitnessVec))
 }
 
 rouletteSelection <- function(fitness, population, popSize) {
