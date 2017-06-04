@@ -83,10 +83,10 @@ classicga <- function(fitness,
     if(mutationProb > 0) {
       for(i in seq_len(populationSize)) {
         mutated <- gaussianMutation(population[i,], mutationProb, min, max)
-        if(!identical(mutated, population[i])) {
+        # if(!identical(mutated, population[i])) {
           fitnessVec[i] <- NA
-        }
-        population[i,] <- gaussianMutation(population[i,], mutationProb, min, max)
+        # }
+        population[i,] <- mutated
       }
     }
     if(verbose) print(population)
