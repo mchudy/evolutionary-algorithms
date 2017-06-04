@@ -1,11 +1,12 @@
 library("GA")
 source("classicga.R")
+source("islandsga.R")
 
 # Example 1
 f <- function(x)  (x^2+x)*cos(x) # -10 < x < 10
 curve(f, -10, 10)
-GA <- classicga(fitness =  f, min = -10, max = 10, populationSize = 50, verbose = FALSE, iterations = 1000,
-                convergenceIters = 50)
+GA <- islandsga(fitness =  f, min = -10, max = 10, populationSize = 500, verbose = FALSE, iterations = 1000, 
+                islandsCount = 10)
 print(GA)
 
 GA <- ga(type = "real-valued", fitness = f, min = -10, max = 10, monitor = NULL, maxiter = 1000, run= 50)

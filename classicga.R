@@ -7,7 +7,8 @@ classicga <- function(fitness,
                       iterations = 100,
                       elitismPercentage = 0.1,
                       verbose = FALSE,
-                      convergenceIters = Inf
+                      convergenceIters = Inf,
+                      initialPopulation = NULL
 ) {
   # validate arguments
   if(missing(fitness) | !is.function(fitness)) {
@@ -39,11 +40,29 @@ classicga <- function(fitness,
   fitnessSummary <- matrix(as.double(NA), nrow = iterations, ncol = 6)
   run <- 1
   
-  # generate random initial population
-  population <- matrix(as.double(NA), nrow = populationSize, ncol = dimension)
-  for(j in 1:dimension) { 
-    population[,j] <- runif(populationSize, min[j], max[j])
+  
+  if(is.null(initialPopulation))
+  { initialPopulation <- matrix(nrow = 0, ncol = dimension) }
+  else
+  { if(is.vector(initialPopulation)) 
+  { if(dimension > 1) initialPopulation <- matrix(initialPopulation, nrow = 1)
+  else          initialPopulation <- matrix(initialPopulation, ncol = 1) }
+    else
+    { initialPopulation <- as.matrix(initialPopulation) }
+    if(dimension != ncol(initialPopulation))
+      stop("Provided suggestions (ncol) matrix do not match number of variables of the problem!")
   }
+  
+  population <- matrix(as.double(NA), nrow = populationSize, ncol = dimension)
+
+  ng <- min(nrow(initialPopulation), populationSize)
+  if(ng > 0) { 
+    population[1:ng,] <- initialPopulation 
+  }
+  if(populationSize > ng) { 
+    population[(ng+1):populationSize,] <- generatePopulation(min, max, populationSize)[1:(populationSize-ng),]
+  }
+
   if(verbose) print(population)
   
   for (iter in seq_len(iterations)) {
@@ -167,4 +186,13 @@ gaussianMutation <- function(solution, prob, min, max) {
 garun <- function(x) {
   x <- as.vector(x)
   sum(rev(x) >= (max(x, na.rm = TRUE) - sqrt(.Machine$double.eps)))
+}
+
+generatePopulation <- function(min, max, populationSize)
+{
+  nvars <- length(min)
+  population <- matrix(as.double(NA), nrow = populationSize, ncol = nvars)
+  for(j in 1:nvars) 
+  { population[,j] <- runif(populationSize, min[j], max[j]) }
+  return(population)
 }
