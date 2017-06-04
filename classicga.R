@@ -6,7 +6,8 @@ classicga <- function(fitness,
                       mutationProb = 0.1,
                       iterations = 100,
                       elitismPercentage = 0.1,
-                      verbose = FALSE
+                      verbose = FALSE,
+                      convergenceIters = Inf
 ) {
   # validate arguments
   if(missing(fitness) | !is.function(fitness)) {
@@ -35,6 +36,8 @@ classicga <- function(fitness,
   fitnessVec <- rep(NA, populationSize)
   eps = sqrt(.Machine$double.eps)
   elitism <- base::max(1, round(populationSize * elitismPercentage))
+  fitnessSummary <- matrix(as.double(NA), nrow = iterations, ncol = 6)
+  run <- 1
   
   # generate random initial population
   population <- matrix(as.double(NA), nrow = populationSize, ncol = dimension)
@@ -44,13 +47,23 @@ classicga <- function(fitness,
   if(verbose) print(population)
   
   for (iter in seq_len(iterations)) {
-    
     # evaluate fitness
     for(i in seq_len(populationSize)) {
       if(is.na(fitnessVec[i])) {
         fitnessVec[i] <- fitness(population[i,])
       }
     }
+    
+    # update summary
+    x <- na.exclude(as.vector(fitnessVec))
+    summaryFiveNum <- fivenum(x)
+    fitnessSummary[iter,] <- c(max = summaryFiveNum[5], mean = mean(x), q3 = summaryFiveNum[4], median = summaryFiveNum[3], q1 = summaryFiveNum[2], min = summaryFiveNum[1])
+    if(iter > 1) {
+      run <- garun(fitnessSummary[seq(iter),1])
+    }
+    if(run >= convergenceIters) break
+    #if(max(fitnessVec, na.rm = TRUE) >= Inf) break
+    
     
     if(iter == iterations) break
     
@@ -149,4 +162,9 @@ gaussianMutation <- function(solution, prob, min, max) {
   # correct bounds
   mutant <- pmax(pmin(mutant, max), min)
   return(mutant)
+}
+
+garun <- function(x) {
+  x <- as.vector(x)
+  sum(rev(x) >= (max(x, na.rm = TRUE) - sqrt(.Machine$double.eps)))
 }
