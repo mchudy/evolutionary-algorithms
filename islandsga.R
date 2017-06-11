@@ -1,8 +1,6 @@
 library("foreach")
 source("classicga.R")
 
-# TODO: might consider parallel execution
-
 islandsga <- function(fitness,
                       min,
                       max,
@@ -14,8 +12,20 @@ islandsga <- function(fitness,
                       mutationProb = 0.1,
                       elitismPercentage = 0.1,
                       iterations = 1000,
-                      verbose = FALSE
+                      verbose = FALSE,
+                      hierarchical = FALSE
 ) {
+  # we consider only one specific hierarchical topology (in a form of binary tree)
+  # 1 2 3 4 5 6 7 8
+  #  9   A   B   C
+  #    D       E
+  #        F
+  #
+  if(hierarchical) {
+    islandsCount <- 15
+    hierarchyDirection <- c(9,9,10,10,11,11,12,12,13,13,14,14,15,15,NA)
+  }
+  
   suggestions <- matrix(nrow = 0, ncol = length(min))
   
   islSize <- max(1, floor(populationSize / islandsCount))
@@ -43,21 +53,33 @@ islandsga <- function(fitness,
     for(island in seq_len(islandsCount)) {
       # get summary of GAs evolution
       j <- seq((iter-1)*migrationInterval+1, iter*migrationInterval)
-      #sumryStat[[i]][j,] <- GAs[[i]]@summary
+      
       # migration step
-      from <- island
-      to <- (island %% islandsCount) + 1
+      if(!hierarchical) { 
+        from <- island
+        to <- (island %% islandsCount) + 1
+      } else {
+        from <- island
+        to <- hierarchyDirection[[from]]
+        if(verbose) print(paste0("Migrating from ", from, " to ", to))
+        if(is.na(to)) {
+          next
+        }
+      }
+      
       ## select top individuals to migrationPop
       j <- order(GAs[[from]]$fitness, decreasing = TRUE)[seq(migPop)]
       migrationPop <- GAs[[from]]$population[j,,drop=FALSE]
-      ## substitute the worst individuals
-      # j <- order(GAs[[to]]@fitness, decreasing = FALSE)[seq(migPop)]
-      ## substitute random individuals
-      # j <- sample(GAs[[to]]@popSize, size = migPop)
-      ## substitute random individuals but the elitist ones
-      j <- sample(setdiff(seq(islSize),
-                          order(GAs[[to]]$fitness, decreasing = TRUE)[seq(elitismPercentage)]),
-                  size = migPop)
+      
+      if(!hierarchical) {
+        ## substitute random individuals
+        j <- sample(islSize, size = migPop)
+      } else {
+        ## substitute random individuals but the elitist ones
+        j <- sample(setdiff(seq(islSize),
+                            order(GAs[[to]]$fitness, decreasing = TRUE)[seq(elitismPercentage)]),
+                    size = migPop)
+      }
       newpop <- rbind(GAs[[to]]$population[-j,,drop=FALSE], migrationPop)
       POPs[[to]] <- newpop
     }
@@ -65,20 +87,9 @@ islandsga <- function(fitness,
   
   fitnessValues <- lapply(GAs, function(x) max(x$fitness, na.rm = TRUE))
   # get islands' solutions
-  
   solutions <- lapply(GAs, function(x) x$solution)
-  # colnames(solution) <- parNames(GAs[[1]])
   fitnessValue <- max(unlist(fitnessValues), na.rm = TRUE)
   solution <- solutions[[which(fitnessValue == unlist(fitnessValues))[1]]]
   
   return(list(fitnessValues = fitnessValues, solutions = solutions, solution = solution))
-  # 
-  # # islands fitness & solution
-  # object@fitnessValues <- fitnessValues
-  # object@solutions <- solutions
-  # # overall fitness & solution
-  # 
-  # 
-  # # return an object of class 'gaisl'
-  # return(object)
 }
