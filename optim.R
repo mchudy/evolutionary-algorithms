@@ -50,7 +50,7 @@ for(popSize in populationSizes) {
         name <- paste0("classicga_", popSize, "_", itersCount, "_", mutProb, "_", crossoverProb)
         print(paste0("Computing ", name))
         print(paste("populationSize", popSize, "iterations", itersCount,
-                    "mutationProb", mutProb, "crossOverProb", crossoverProb, "migrationRate"))
+                    "mutationProb", mutProb, "crossOverProb", crossoverProb))
         optimizer <- getClassicGaOptimizer(popSize = popSize, mutationProb = mutProb, crossoverProb = crossoverProb)
         
         oldTime <- Sys.time() 
