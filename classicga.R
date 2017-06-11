@@ -78,7 +78,7 @@ classicga <- function(fitness,
     summaryFiveNum <- fivenum(x)
     fitnessSummary[iter,] <- c(max = summaryFiveNum[5], mean = mean(x), q3 = summaryFiveNum[4], median = summaryFiveNum[3], q1 = summaryFiveNum[2], min = summaryFiveNum[1])
     if(iter > 1) {
-      run <- garun(fitnessSummary[seq(iter),1])
+      run <- compareConvergence(fitnessSummary[seq(iter),1])
     }
     if(run >= convergenceIters) break
     #if(max(fitnessVec, na.rm = TRUE) >= Inf) break
@@ -183,16 +183,16 @@ gaussianMutation <- function(solution, prob, min, max) {
   return(mutant)
 }
 
-garun <- function(x) {
+compareConvergence <- function(x) {
   x <- as.vector(x)
   sum(rev(x) >= (max(x, na.rm = TRUE) - sqrt(.Machine$double.eps)))
 }
 
-generatePopulation <- function(min, max, populationSize)
-{
+generatePopulation <- function(min, max, populationSize){
   nvars <- length(min)
   population <- matrix(as.double(NA), nrow = populationSize, ncol = nvars)
-  for(j in 1:nvars) 
-  { population[,j] <- runif(populationSize, min[j], max[j]) }
+  for(j in 1:nvars){ 
+    population[,j] <- runif(populationSize, min[j], max[j]) 
+  }
   return(population)
 }

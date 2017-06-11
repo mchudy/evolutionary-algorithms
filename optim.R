@@ -1,22 +1,131 @@
-#install.packages("GA")
-
 library("bbob")
-library("GA")
 source("classicga.R")
+source("islandsga.R")
 
-my_optimizer <- function(par, fun, lower, upper, max_eval) {
-  classicga(fitness=fun, min=lower, max=upper,
-            populationSize = 50, mutationProb = 0.1,
-            crossoverProb = 0.2, iterations = max_eval,
-            elitismPercentage = 0.05)
-  
-  #ga(type = "real-valued", fitness = fun, 
-  #   min = lower, max = upper, popSize = 50)
-  
-  #optim(par, fun, method="L-BFGS-B", 
-  #    lower=lower, upper=upper, control=list(maxit=max_eval))
+getClassicGaOptimizer <- function(popSize, mutationProb, crossoverProb) {
+  myOptimizer <- function(par, fun, lower, upper, max_eval) {
+    classicga(fitness=fun, min=lower, max=upper,
+              populationSize = popSize, 
+              mutationProb = mutationProb,
+              crossoverProb = crossoverProb, 
+              iterations = max_eval,
+              convergenceIters = max_eval,
+              elitismPercentage = 0.05)
+  }
+  return(myOptimizer)
 }
 
-budget <- 1000
-bbo_benchmark(my_optimizer, "l-bfgs-b", "results_data", budget = 1000)
-#bbo_timing(my_optimizer)
+getIslandsOptimizer <- function(popSize, mutationProb, crossoverProb, migrationRate, 
+                                migrationInterval, islandsCount, hierarchical) {
+  myOptimizer <- function(par, fun, lower, upper, max_eval) {
+    islandsga(fitness=fun, min=lower, max=upper,
+              populationSize = popSize,
+              mutationProb = mutationProb,
+              crossoverProb = crossoverProb,
+              islandsCount = islandsCount,
+              migrationInterval = migrationInterval,
+              migrationRate = migrationRate,
+              iterations = max_eval,
+              hierarchical = hierarchical,
+              elitismPercentage = 0.05)
+  }
+}
+
+populationSizes <- c(15)
+iterations <- c(1)
+mutationProbs <- c(0.1)
+crossoverProbs <- c(0)
+
+i <- 1
+basicCombinations <- length(populationSizes)) * length(iterations) * length(mutationProbs) * length(crossoverProbs)
+print("Testing classic GA")
+print(paste("Combinations to check:", basicCombinations))
+for(popSize in populationSizes) {
+  for(itersCount in iterations) {
+    for(mutProb in mutationProbs) {
+      for(crossoverProb in crossoverProbs) {
+        print(paste("Run", i))
+        i <- i + 1
+        
+        name <- paste0("classicga_", popSize, "_", itersCount, "_", mutProb, "_", crossoverProb)
+        print(paste0("Computing ", name))
+        print(paste("populationSize", popSize, "iterations", itersCount,
+                    "mutationProb", mutProb, "crossOverProb", crossoverProb, "migrationRate"))
+        optimizer <- getClassicGaOptimizer(popSize = popSize, mutationProb = mutProb, crossoverProb = crossoverProb)
+        bbo_benchmark(optimizer, "classicga", name, budget = itersCount)
+      }
+    }
+  }
+}
+
+migrationRates <- c(0.1)
+migrationIntervals <- c(1,2)
+islCounts <- c(2,3)
+
+i <- 1
+print("Testing stepping stones island model")
+print(paste("Combinations to check:", basicCombinations * length(migrationRates) * length(migrationIntervals) * length(islCounts)))
+for(popSize in populationSizes) {
+  for(itersCount in iterations) {
+    for(mutProb in mutationProbs) {
+      for(crossoverProb in crossoverProbs) {
+        for(migrationRate in migrationRates) {
+          for(migrationInterval in migrationIntervals) {
+            for(islandCount in islCounts) {
+              print(paste("Run", i))
+              i <- i + 1
+              
+              name <- paste0("stones_", popSize, "_", itersCount, "_", mutProb, "_", crossoverProb, "_", 
+                             migrationRate, "_", migrationInterval, "_", islandCount)
+              print(paste0("Computing ", name))
+              print(paste("populationSize", popSize, "iterations", itersCount,
+                          "mutationProb", mutProb, "crossOverProb", crossoverProb, "migrationRate",
+                          migrationRate, "migrationInterval", migrationInterval, "islandsCount", islandCount))
+              optimizer <- getIslandsOptimizer(popSize = popSize, 
+                                               mutationProb = mutProb, 
+                                               crossoverProb = crossoverProb,
+                                               migrationRate = migrationRate,
+                                               migrationInterval = migrationInterval,
+                                               islandsCount = islandCount,
+                                               hierarchical = FALSE)
+              bbo_benchmark(optimizer, "stepping-stones", name, budget = itersCount)
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+i <- 1
+print("Testing hierarchical island model")
+print(paste("Combinations to check:", basicCombinations * length(migrationRates) * length(migrationIntervals)))
+for(popSize in populationSizes) {
+  for(itersCount in iterations) {
+    for(mutProb in mutationProbs) {
+      for(crossoverProb in crossoverProbs) {
+        for(migrationRate in migrationRates) {
+          for(migrationInterval in migrationIntervals) {
+            print(paste("Run", i))
+            i <- i + 1
+            
+            name <- paste0("hierarchy_", popSize, "_", itersCount, "_", mutProb, "_", crossoverProb, "_", 
+                           migrationRate, "_", migrationInterval)
+            print(paste0("Computing ", name))
+            print(paste("populationSize:", popSize, "iterations", itersCount,
+                        "mutationProb", mutProb, "crossOverProb", crossoverProb, "migrationRate",
+                        migrationRate, "migrationInterval", migrationInterval))
+            optimizer <- getIslandsOptimizer(popSize = popSize, 
+                                             mutationProb = mutProb, 
+                                             crossoverProb = crossoverProb,
+                                             migrationRate = migrationRate,
+                                             migrationInterval = migrationInterval,
+                                             islandsCount = 15,
+                                             hierarchical = TRUE)
+            bbo_benchmark(optimizer, "hierarchy", name, budget = itersCount)
+          }
+        }
+      }
+    }
+  }
+}
